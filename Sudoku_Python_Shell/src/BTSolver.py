@@ -48,6 +48,7 @@ class BTSolver:
                 The bool is true if assignment is consistent, false otherwise.
     """
     def forwardChecking ( self ):
+        # We are starting today! Here we go 02/10/23
         return ({},False)
 
     # =================================================================
