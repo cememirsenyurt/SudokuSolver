@@ -47,9 +47,100 @@ class BTSolver:
         Return: a tuple of a dictionary and a bool. The dictionary contains all MODIFIED variables, mapped to their MODIFIED domain.
                 The bool is true if assignment is consistent, false otherwise.
     """
+
+    from math import floor
+    def calcBlock(self,p,q):
+        # block = int(((floor(i/sboard.p) * sboard.p) + floor(j/sboard.q)))
+        return (p//3) + 3*(q//3)
+
+    def updateModVars(self,mod_vars,p,q,value):
+
+        # if variable is already assigned, do nothing
+        if self.gameboard.board[p][q]:
+            return
+
+        cur_mod_var = mod_vars[p][q]
+
+        # if variable not in mod_vars, add
+        if not cur_mod_var:
+            block = self.calcBlock(p,q)
+            cur_mod_var = Variable.Variable(list(range(9)),p,q,block)
+            mod_vars[p][q] = cur_mod_var
+
+        # remove value from domain of variable
+
+        cur_mod_var.removeValueFromDomain(value)
+
+    def checkNeighborRow(self,mod_vars,p,q,value):
+        for pSub in range(9):
+            # don't check the same tile
+            if pSub==p:
+                pass
+            self.updateModVars(mod_vars,pSub,q,value)
+
+    def checkNeighborColumn(self,mod_vars,p,q,value):
+        for qSub in range(9):
+            # don't check the same tile
+            if qSub==q:
+                pass
+            self.updateModVars(mod_vars,p,qSub,value)
+
+    def checkNeighborBlock(self,mod_vars,p,q,value):
+        block = self.calcBlock(p,q)
+        
+        for p_ in range(3):
+            for q_ in range(3):
+                pSub = p_ + 3*(block%3)
+                qSub = q_ + 3*(block//3)
+
+                if pSub==p and qSub==q:
+                    pass
+                self.updateModVars(mod_vars,pSub,qSub,value)
+
+    def checkNeighbors(self,mod_vars,p,q):
+        value = self.gameboard.board[p][q]
+
+        self.checkNeighborRow(mod_vars,p,q,value)
+        self.checkNeighborColumn(mod_vars,p,q,value)
+        self.checkNeighborBlock(mod_vars,p,q,value)
+
     def forwardChecking ( self ):
+
+        # "Variable module is not callable"
+        # test = Variable.Variable(range(9),0,0,0)
+        # return ({},False)
+
         # We are starting today! Here we go 02/10/23
-        return ({},False)
+
+        # APPROACH
+        # for every variable v (9^2=81):
+        #   for every neighbor n of v (any variable in the same row, column or bidirectional diagonal as v; 3*(9-1)=24):
+        #     remove value of v from domain of n
+        # 
+        # time complexity = O(26n^2)
+
+        # create 9x9 board to match gameboard
+        mod_vars = [[None for _ in range(9)] for _ in range(9)]
+
+        for p in range(9):
+            for q in range(9):
+                # if value at (p,q) != 0, check neighbors
+                if self.gameboard.board[p][q]:
+                    self.checkNeighbors(mod_vars,p,q)
+
+        # transform array into dictionary
+        dict = {}
+        for p in range(9):
+            for q in range(9):
+                # if variable has been created, it means it has been modified
+                # therefore, add it to dictionary
+                cur_mod_var = mod_vars[p][q]
+                if cur_mod_var:
+                    dict[cur_mod_var] = cur_mod_var.getDomain()
+
+        # DO: check consistency
+
+        return (dict,False)
 
     # =================================================================
 	# Arc Consistency
