@@ -105,7 +105,7 @@ class BTSolver:
         self.checkNeighborBlock(mod_vars,p,q,value)
 
     def forwardChecking ( self ):
-
+        '''
         # "Variable module is not callable"
         # test = Variable.Variable(range(9),0,0,0)
         # return ({},False)
@@ -137,10 +137,31 @@ class BTSolver:
                 cur_mod_var = mod_vars[p][q]
                 if cur_mod_var:
                     dict[cur_mod_var] = cur_mod_var.getDomain()
-
+        print(dict)
         # DO: check consistency
+        '''
 
-        return (dict,False)
+        #forward checking: check each unassigned neighbor in constraint graph
+        # create mod_vars and initialize from the board
+        mod_vars = [[None for _ in range(9)] for _ in range(9)]
+        for p in range(9):
+            for q in range(9):
+                # if value at (p,q) != 0, check neighbors
+                if self.gameboard.board[p][q]:
+                    self.checkNeighbors(mod_vars,p,q)
+        #iterate through and update modvars (pruning i guess)
+        for p in range(9):
+            for q in range(9):
+                self.updateModVars(mod_vars,p,q,mod_vars[p][q])
+                for neighbor in self.network.getNeighborsOfVariable(mod_vars[p][q]):
+                    if neighbor.assignmentsCheck() == False:
+                        for n in neighbor.getDomain():
+                            if not n.checkConsistency():
+                                self.updateModVars(mod_vars,p,q,mod_vars[p][q]) #TAKE CARE OF HERE IT'S WRONG
+                        if not neighbor.getDomain():
+                            return False
+        
+        return (dict,True)
 
     # =================================================================
 	# Arc Consistency
