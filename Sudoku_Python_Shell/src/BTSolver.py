@@ -103,65 +103,39 @@ class BTSolver:
         self.checkNeighborRow(mod_vars,p,q,value)
         self.checkNeighborColumn(mod_vars,p,q,value)
         self.checkNeighborBlock(mod_vars,p,q,value)
-
+    
     def forwardChecking ( self ):
-        '''
-        # "Variable module is not callable"
-        # test = Variable.Variable(range(9),0,0,0)
-        # return ({},False)
-
-        # We are starting today! Here we go 02/10/23
-
-        # APPROACH
-        # for every variable v (9^2=81):
-        #   for every neighbor n of v (any variable in the same row, column or bidirectional diagonal as v; 3*(9-1)=24):
-        #     remove value of v from domain of n
-        # 
-        # time complexity = O(26n^2)
-
-        # create 9x9 board to match gameboard
-        mod_vars = [[None for _ in range(9)] for _ in range(9)]
-
-        for p in range(9):
-            for q in range(9):
-                # if value at (p,q) != 0, check neighbors
-                if self.gameboard.board[p][q]:
-                    self.checkNeighbors(mod_vars,p,q)
-
-        # transform array into dictionary
-        dict = {}
-        for p in range(9):
-            for q in range(9):
-                # if variable has been created, it means it has been modified
-                # therefore, add it to dictionary
-                cur_mod_var = mod_vars[p][q]
-                if cur_mod_var:
-                    dict[cur_mod_var] = cur_mod_var.getDomain()
-        print(dict)
-        # DO: check consistency
-        '''
-
-        #forward checking: check each unassigned neighbor in constraint graph
         # create mod_vars and initialize from the board
         mod_vars = [[None for _ in range(9)] for _ in range(9)]
         for p in range(9):
             for q in range(9):
                 # if value at (p,q) != 0, check neighbors
                 if self.gameboard.board[p][q]:
-                    self.checkNeighbors(mod_vars,p,q)
-        #iterate through and update modvars (pruning i guess)
+                    self.checkNeighbors(mod_vars, p, q)
+        modified_vars = {}  #dictionary that we created to learn which variables were modified
         for p in range(9):
             for q in range(9):
-                self.updateModVars(mod_vars,p,q,mod_vars[p][q])
-                for neighbor in self.network.getNeighborsOfVariable(mod_vars[p][q]):
-                    if neighbor.assignmentsCheck() == False:
-                        for n in neighbor.getDomain():
-                            if not n.checkConsistency():
-                                self.updateModVars(mod_vars,p,q,mod_vars[p][q]) #TAKE CARE OF HERE IT'S WRONG
-                        if not neighbor.getDomain():
-                            return False
-        
-        return (dict,True)
+                # if variable is unassigned, check consistency with its domain
+                if self.gameboard.board[p][q] == 0:             #it's unassigned
+                    var = self.network.getVariable((p, q))
+                    if var.isChangeable():                      #check to see if that variable is pre-assigned (not changanle) or visa versa
+                        domain = var.getDomain()                #get the domain from variable.py
+                        trail = self.trail.placeTrailMarker()   #setting a marker to save the initial version of the trail (for back tracking)
+                        for value in domain.value_or_values:    #domain has lsit of value(s)
+                            var.assignValue(value)              #assign that value to associated var
+                            consistent = True
+                            # check consistency with its neighbors
+                            for neighbor in self.network.getNeighborsOfVariable(var):           #get the neighbor of the var
+                                if neighbor.isChangeable() and not neighbor.assignmentsCheck(): #if the neighbor is not pre-assigned and it doesn't satisfy the constraints
+                                    consistent = False                                          # Then it's not consistent
+                                    break
+                            if consistent:                                                      #if it's consistent, then update mod_vars and dictionary
+                                modified_vars[var] = var.getDomain()                            #get the domain of the var and put that into dict                        
+                                self.updateModVars(mod_vars, p, q, var)                         #built in appropriate "pruning"
+                            self.trail.update(trail)            #built in update method to update trail list with the assignments that we make.
+                        if not var.getDomain():                 #if var ischangable but we gets no domain.
+                            return (modified_vars, False)       # So, immediately return the tuple.
+        return (modified_vars, True)                            #all assignments are legit and consistent, so return the tuple
 
     # =================================================================
 	# Arc Consistency
