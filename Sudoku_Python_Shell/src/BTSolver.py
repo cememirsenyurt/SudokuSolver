@@ -103,10 +103,12 @@ class BTSolver:
         self.checkNeighborRow(mod_vars,p,q,value)
         self.checkNeighborColumn(mod_vars,p,q,value)
         self.checkNeighborBlock(mod_vars,p,q,value)
-    
+
     def forwardChecking ( self ):
+        #trail = Trail.Trail()
         # create mod_vars and initialize from the board
-        mod_vars = [[None for _ in range(9)] for _ in range(9)]
+        #mod_vars = [[None for _ in range(9)] for _ in range(9)]
+        mod_vars = self.gameboard.board
         for p in range(9):
             for q in range(9):
                 # if value at (p,q) != 0, check neighbors
@@ -117,24 +119,25 @@ class BTSolver:
             for q in range(9):
                 # if variable is unassigned, check consistency with its domain
                 if self.gameboard.board[p][q] == 0:             #it's unassigned
-                    var = self.network.getVariable((p, q))
-                    if var.isChangeable():                      #check to see if that variable is pre-assigned (not changanle) or visa versa
-                        domain = var.getDomain()                #get the domain from variable.py
-                        trail = self.trail.placeTrailMarker()   #setting a marker to save the initial version of the trail (for back tracking)
-                        for value in domain.value_or_values:    #domain has lsit of value(s)
-                            var.assignValue(value)              #assign that value to associated var
-                            consistent = True
-                            # check consistency with its neighbors
-                            for neighbor in self.network.getNeighborsOfVariable(var):           #get the neighbor of the var
-                                if neighbor.isChangeable() and not neighbor.assignmentsCheck(): #if the neighbor is not pre-assigned and it doesn't satisfy the constraints
-                                    consistent = False                                          # Then it's not consistent
-                                    break
-                            if consistent:                                                      #if it's consistent, then update mod_vars and dictionary
-                                modified_vars[var] = var.getDomain()                            #get the domain of the var and put that into dict                        
-                                self.updateModVars(mod_vars, p, q, var)                         #built in appropriate "pruning"
-                            self.trail.update(trail)            #built in update method to update trail list with the assignments that we make.
-                        if not var.getDomain():                 #if var ischangable but we gets no domain.
-                            return (modified_vars, False)       # So, immediately return the tuple.
+                    var_list = self.network.getVariables()
+                    for var in var_list:
+                        if var.isChangeable():                      #check to see if that variable is pre-assigned (not changanle) or visa versa
+                            domain = var.getDomain()                #get the domain from variable.py
+                            trail = self.trail.placeTrailMarker()   #setting a marker to save the initial version of the trail (for back tracking)
+                            for value in domain.values:             #domain has list of value(s)
+                                var.assignValue(value)              #assign that value to associated var
+                                consistent = True
+                                # check consistency with its neighbors
+                                for neighbor in self.network.getNeighborsOfVariable(var):           #get the neighbor of the var
+                                    if neighbor.isChangeable() and self.network.isConsistent(): # and not neighbor.isConsistent(): #if the neighbor is not pre-assigned and it doesn't satisfy the constraints
+                                        consistent = False                                          # Then it's not consistent
+                                        break
+                                if consistent:                                                      #if it's consistent, then update mod_vars and dictionary
+                                    modified_vars[var] = var.getAssignment()                        #only will add the assigned variable into dict                        
+                                    self.updateModVars(mod_vars, p, q, var)                         #built in appropriate "pruning"
+                                self.trail.push(var)                                                 #built in update method to update trail list with the assignments that we make.
+                            if not var.getDomain():                 #if var ischangable but we gets no domain.
+                                return (modified_vars, False)       # So, immediately return the tuple.
         return (modified_vars, True)                            #all assignments are legit and consistent, so return the tuple
 
     # =================================================================
