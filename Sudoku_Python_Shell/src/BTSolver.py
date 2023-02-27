@@ -160,7 +160,7 @@ class BTSolver:
     # =================================================================
 	# Arc Consistency
 	# =================================================================
-    def arcConsistency( self ):
+    def arcConsistency( self ):                                         # Chech for constarint consistency 
         assignedVars = []
         for c in self.network.constraints:
             for v in c.vars:
@@ -264,8 +264,21 @@ class BTSolver:
         Return: A list of v's domain sorted by the LCV heuristic
                 The LCV is first and the MCV is last
     """
-    def getValuesLCVOrder ( self, v ):
-        return None
+    def getValuesLCVOrder (self, v):                                #List of domain values listed in sorted or by LCV
+        set_domain = set()
+        return_list = []
+
+        for vd in v.getDomain().values:
+            counter = 0
+            for neighbor in self.network.getNeighborsOfVariable(v):
+                if neighbor.getDomain().contains(vd):
+                    counter += 1
+            set_domain.add((vd, counter))
+        
+        for tuple in sorted(set_domain, key=lambda x: x[1]):
+            return_list.append(tuple[0])
+        
+        return return_list
 
     """
          Optional TODO: Implement your own advanced Value Heuristic
