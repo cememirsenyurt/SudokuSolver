@@ -224,7 +224,20 @@ class BTSolver:
         Return: The unassigned variable with the smallest domain
     """
     def getMRV ( self ):
-        return None
+
+        # get -> variables
+        vars = self.network.getVariables()
+
+        # filter -> unassigned variables
+        vars = list(filter(lambda v:not v.isAssigned(),vars))
+
+        # return nothing if all variables are assigned
+        if not len(vars):
+            return None
+        
+        # return element with lowest domain
+        v = min(vars,key=lambda var: var.getDomain().size())
+        return v
 
     """
         Part 2 TODO: Implement the Minimum Remaining Value Heuristic
