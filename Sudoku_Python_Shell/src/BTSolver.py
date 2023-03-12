@@ -247,8 +247,36 @@ class BTSolver:
                 If there are multiple variables that have the same smallest domain with the same number of unassigned neighbors, add them to the list of Variables.
                 If there is only one variable, return the list of size 1 containing that variable.
     """
+    # returns list of variables
     def MRVwithTieBreaker ( self ):
-        return None
+
+        # get -> variables
+        vars = self.network.getVariables()
+
+        # filter -> unassigned variables
+        vars = list(filter(lambda v:not v.isAssigned(),vars))
+
+        # return nothing if all variables are assigned
+        if not len(vars):
+            # print('All vars have been assigned')
+            return [None]
+        
+        # get min domain
+        min_d = min(map(lambda var: var.getDomain().size(),vars))
+
+        # get all variables with domain equal to min domain
+        vars = list(filter(lambda var: var.getDomain().size() == min_d,vars))
+
+        # tie -> return list of vars with greatest degree
+        if len(vars):
+            # get max degrees
+            max_d = min(map(lambda var: len(self.network.getNeighborsOfVariable(var)),vars))
+
+            # get all variables with degrees equal to max degrees
+            vars = list(filter(lambda var: len(self.network.getNeighborsOfVariable(var)) == max_d,vars))
+        
+        # print(len(vars))
+        return vars
 
     """
          Optional TODO: Implement your own advanced Variable Heuristic
