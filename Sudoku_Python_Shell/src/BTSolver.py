@@ -193,8 +193,44 @@ class BTSolver:
 		        that were ASSIGNED during the whole NorvigCheck propagation, and mapped to the values that they were assigned.
                 The bool is true if assignment is consistent, false otherwise.
     """
-    def norvigCheck ( self ):
-        return ({}, False)
+    def norvigCheck(self):
+        # Norvig's first strategy is Forward Checking.
+        # Norvig's second strategy is if a box has one possible place for a value, then put the value there.
+
+        # Dictionary to store modified variables and their assigned values.
+        # List to store not assigned variables in our board (To check len = 1).
+        # Initialize the consistency flag to True.
+        modified_vars_dict = {}
+        not_assigned = []
+        consistent = True
+        
+        # 1) First Strategy: Forward Checking
+        modified_vars_dict, consistent = self.forwardChecking()
+
+        # 2) Second Strategy
+        # For each unassigned variable, the code checks if there is only one value in the domain. 
+        # If so, it assigns that value to the variable, and removes it from the domains of all neighbors.
+
+        for constraint in self.network.constraints:
+            for var in constraint.vars:
+                if var.size() == 0:  # If there are no possible values left for a variable, return failure
+                        return (modified_vars_dict, False)
+                else:
+                    if not var.isAssigned():
+                        # For each unassigned variable in the constraint, check the domain
+                        not_assigned = var.getValues()                                                    #values is list of values
+                        if len(not_assigned) == 1:                                                        #if there is only one possible value
+                            val = not_assigned[0]                                                         #get the value
+                            self.trail.push(var)                                                          #push that into trail
+                            var.assignValue(val)                                                          #assign it
+                            modified_vars_dict[var] = val                                                 #plug it into dict
+                            # Check the neighbors and take the value out from their domains
+                            for neighbor in self.network.getNeighborsOfVariable(var):
+                                if neighbor.isChangeable() and not neighbor.isAssigned() and neighbor.getDomain().contains(val):
+                                    self.trail.push(neighbor)
+                                    neighbor.removeValueFromDomain(val)
+                                    modified_vars_dict[neighbor] = neighbor.getDomain()
+        return (modified_vars_dict, consistent)
 
     """
          Optional TODO: Implement your own advanced Constraint Propagation
@@ -247,36 +283,8 @@ class BTSolver:
                 If there are multiple variables that have the same smallest domain with the same number of unassigned neighbors, add them to the list of Variables.
                 If there is only one variable, return the list of size 1 containing that variable.
     """
-    # returns list of variables
     def MRVwithTieBreaker ( self ):
-
-        # get -> variables
-        vars = self.network.getVariables()
-
-        # filter -> unassigned variables
-        vars = list(filter(lambda v:not v.isAssigned(),vars))
-
-        # return nothing if all variables are assigned
-        if not len(vars):
-            # print('All vars have been assigned')
-            return [None]
-        
-        # get min domain
-        min_d = min(map(lambda var: var.getDomain().size(),vars))
-
-        # get all variables with domain equal to min domain
-        vars = list(filter(lambda var: var.getDomain().size() == min_d,vars))
-
-        # tie -> return list of vars with greatest degree
-        if len(vars):
-            # get max degrees
-            max_d = min(map(lambda var: len(self.network.getNeighborsOfVariable(var)),vars))
-
-            # get all variables with degrees equal to max degrees
-            vars = list(filter(lambda var: len(self.network.getNeighborsOfVariable(var)) == max_d,vars))
-        
-        # print(len(vars))
-        return vars
+        return None
 
     """
          Optional TODO: Implement your own advanced Variable Heuristic
